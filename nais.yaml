@@ -1,0 +1,15 @@
+name: dagpenger-journalforing-ruting
+image: repo.adeo.no:5443/dagpenger-journalforing-ruting
+team: dagpenger
+replicas:
+  min: 2
+  max: 4
+resources:
+  limits:
+    cpu: 1000m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+prometheus:
+  enabled: true
