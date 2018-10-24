@@ -4,18 +4,25 @@ plugins {
     id("com.diffplug.gradle.spotless") version "3.13.0"
     id("com.palantir.docker") version "0.20.1"
     id("com.palantir.git-version") version "0.11.0"
-    id("com.adarshr.test-logger") version "1.5.0"
     id("java-library")
+}
+
+buildscript {
+    repositories {
+        maven("https://repo.adeo.no/repository/maven-central")
+    }
 }
 
 apply {
     plugin("com.diffplug.gradle.spotless")
-    plugin("com.adarshr.test-logger")
 }
 
 repositories {
-    jcenter()
-    maven(url = "http://packages.confluent.io/maven/")
+    maven("https://repo.adeo.no/repository/maven-central")
+    maven("http://packages.confluent.io/maven/")
+    maven("https://dl.bintray.com/kotlin/ktor/")
+    maven("https://dl.bintray.com/kotlin/kotlinx")
+    maven("https://dl.bintray.com/kittinunf/maven")
 }
 
 val gitVersion: groovy.lang.Closure<Any> by extra
@@ -42,6 +49,8 @@ val kotlinLoggingVersion = "1.4.9"
 val fuelVersion = "1.15.0"
 val kafkaVersion = "2.0.0"
 val confluentVersion = "4.1.2"
+val prometheusVersion = "0.5.0"
+val ktorVersion = "0.9.5"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -52,9 +61,14 @@ dependencies {
     implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
     implementation("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
 
+    implementation("io.prometheus:simpleclient_common:$prometheusVersion")
+    implementation("io.prometheus:simpleclient_hotspot:$prometheusVersion")
+
     api("org.apache.kafka:kafka-clients:$kafkaVersion")
     api("org.apache.kafka:kafka-streams:$kafkaVersion")
     api("io.confluent:kafka-streams-avro-serde:$confluentVersion")
+
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
