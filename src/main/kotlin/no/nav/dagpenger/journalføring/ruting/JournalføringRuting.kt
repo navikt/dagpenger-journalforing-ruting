@@ -11,9 +11,8 @@ import org.apache.kafka.streams.StreamsBuilder
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringRuting() : Service() {
+class JournalføringRuting : Service() {
     override val SERVICE_APP_ID = "journalføring-ruting"
-    override val HTTP_PORT: Int = 8080
 
     companion object {
         @JvmStatic
