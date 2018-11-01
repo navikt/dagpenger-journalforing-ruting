@@ -36,7 +36,7 @@ application {
 }
 
 docker {
-    name = "navikt/${application.applicationName}"
+    name = "repo.adeo.no:5443/${application.applicationName}"
     buildArgs(mapOf(
         "APP_NAME" to application.applicationName,
         "DIST_TAR" to "${application.applicationName}-${project.version}"
@@ -57,6 +57,7 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation("no.nav.dagpenger:streams:0.1.9-SNAPSHOT")
     implementation("no.nav.dagpenger:events:0.1.5-SNAPSHOT")
+
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
     implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
     implementation("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
