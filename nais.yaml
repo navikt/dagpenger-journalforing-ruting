@@ -21,3 +21,5 @@ fasitResources:
     resourceType: credential
   - alias:  kafka-schema-registry
     resourceType: baseUrl
+  - alias: dagpenger-oppslag-api
+    resourceType: restservice
