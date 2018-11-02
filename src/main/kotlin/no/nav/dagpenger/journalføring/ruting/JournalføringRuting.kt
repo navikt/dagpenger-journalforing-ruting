@@ -2,27 +2,26 @@ package no.nav.dagpenger.journalføring.ruting
 
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
+import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import no.nav.dagpenger.streams.consumeTopic
+import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
+import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-private val dagpengerOppslagUrl = getEnvVar("DAGPENGER_OPPSLAG_API_URL")
-
-fun getEnvVar(varName: String, defaultValue: String? = null) =
-        System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
-
-class JournalføringRuting(private val oppslagHttpClient: OppslagHttpClient) : Service() {
-    override val SERVICE_APP_ID = "journalføring-ruting"
+class JournalføringRuting(val env: Environment, private val oppslagHttpClient: OppslagHttpClient) : Service() {
+    override val SERVICE_APP_ID = "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
 
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            val service = JournalføringRuting(OppslagHttpClient(dagpengerOppslagUrl))
+            val env = Environment()
+            val service = JournalføringRuting(env, OppslagHttpClient(env.dagpengerOppslagUrl))
             service.start()
         }
     }
@@ -44,6 +43,10 @@ class JournalføringRuting(private val oppslagHttpClient: OppslagHttpClient) : S
         return KafkaStreams(builder.build(), this.getConfig())
     }
 
+    override fun getConfig(): Properties {
+        return streamConfig(appId = SERVICE_APP_ID, bootStapServerUrl = env.bootstrapServersUrl, credential = KafkaCredential(env.username, env.password))
+    }
+
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getJournalpost().getSøker().getIdentifikator()
         val (geografiskTilknytning, diskresjonsKode) = oppslagHttpClient.hentGeografiskTilknytning(fødselsnummer)
@@ -54,5 +57,3 @@ class JournalføringRuting(private val oppslagHttpClient: OppslagHttpClient) : S
         return behov
     }
 }
-
-

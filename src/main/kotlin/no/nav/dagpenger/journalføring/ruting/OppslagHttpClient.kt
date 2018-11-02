@@ -37,13 +37,13 @@ class OppslagHttpClient(private val oppslagUrl: String) {
 }
 
 data class GeografiskTilknytningResponse(
-        val geografiskTilknytning: String,
-        val diskresjonskode: String?
+    val geografiskTilknytning: String,
+    val diskresjonskode: String?
 )
 
 data class BehandlendeEnhetRequest(
-        val geografiskTilknytning: String,
-        val diskresjonskode: String?
+    val geografiskTilknytning: String,
+    val diskresjonskode: String?
 )
 
 class OppslagException(val statusCode: Int, override val message: String, override val cause: Throwable) : RuntimeException(message, cause)
