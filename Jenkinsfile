@@ -1,7 +1,7 @@
 pipeline {
   agent any
   environment {
-    APPLICATION_NAME = 'dagpenger-journalfoering-ruting'
+    APPLICATION_NAME = 'dagpenger-journalforing-ruting'
     ZONE = 'fss'
     NAMESPACE = 'default'
     VERSION = sh(script: './gradlew -q printVersion', returnStdout: true).trim()
