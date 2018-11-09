@@ -14,7 +14,7 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringRuting(val env: Environment, private val oppslagHttpClient: OppslagHttpClient) : Service() {
+class JournalføringRuting(val env: Environment, private val oppslagClient: OppslagClient) : Service() {
     override val SERVICE_APP_ID = "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
 
     companion object {
@@ -27,7 +27,7 @@ class JournalføringRuting(val env: Environment, private val oppslagHttpClient: 
     }
 
     override fun setupStreams(): KafkaStreams {
-        println(SERVICE_APP_ID)
+        LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
         val builder = StreamsBuilder()
 
         val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST)
@@ -49,8 +49,8 @@ class JournalføringRuting(val env: Environment, private val oppslagHttpClient: 
 
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getJournalpost().getSøker().getIdentifikator()
-        val (geografiskTilknytning, diskresjonsKode) = oppslagHttpClient.hentGeografiskTilknytning(fødselsnummer)
-        val behandlendeEnhet = oppslagHttpClient.hentBehandlendeEnhet(
+        val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(fødselsnummer)
+        val behandlendeEnhet = oppslagClient.hentBehandlendeEnhet(
                 BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode))
 
         behov.getJournalpost().setBehandleneEnhet(behandlendeEnhet)
