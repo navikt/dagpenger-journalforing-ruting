@@ -12,6 +12,8 @@ import no.nav.dagpenger.events.avro.Søker
 import no.nav.dagpenger.streams.Topics
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -19,7 +21,10 @@ import org.apache.kafka.common.config.SaslConfigs
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
+import java.time.Duration
 import java.util.Properties
+import java.util.Random
+import kotlin.test.assertEquals
 
 class JournalføringRutingComponentTest {
 
@@ -56,7 +61,20 @@ class JournalføringRutingComponentTest {
     }
 
     @Test
-    fun ` Component test of JournalføringRuting `() {
+    fun ` Skal kunne legge på behandlende enhet`() {
+
+        val innkommendeBehov = mapOf(
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to false,
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to false,
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to true,
+            Random().nextLong().toString() to false,
+            Random().nextLong().toString() to true
+        )
 
         // given an environment
         val env = Environment(
@@ -76,20 +94,33 @@ class JournalføringRutingComponentTest {
 
         ruting.start()
 
-
-        val behov: Behov = Behov
-            .newBuilder()
-            .setJournalpost(Journalpost
+        innkommendeBehov.forEach { fødselsnummer, behandlendeEnhet ->
+            val innkommendeBehov: Behov = Behov
                 .newBuilder()
-                .setSøker(Søker("12345678"))
-                .setJournalpostType(JournalpostType.NY)
-                .build())
-            .build()
-        val record = behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behov)).get()
-        LOGGER.info { "Produced -> ${record.topic()}  to offset ${record.offset()}" }
+                .setJournalpost(
+                    Journalpost
+                        .newBuilder()
+                        .setSøker(Søker(fødselsnummer))
+                        .setJournalpostType(JournalpostType.NY)
+                        .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
+                        .build()
+                )
+                .build()
+            val record = behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, innkommendeBehov)).get()
+            LOGGER.info { "Produced -> ${record.topic()}  to offset ${record.offset()}" }
+        }
 
+        val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env)
+        val behovsListe = behovConsumer.poll(Duration.ofSeconds(5)).toList()
 
         ruting.stop()
+
+        assertEquals(13, behovsListe.size)
+
+        val lagtTilBehandlendeEnhet = behovsListe.filter { kanskjeBehandletBehov ->
+            innkommendeBehov.filterValues { !it }.containsKey(kanskjeBehandletBehov.value().getJournalpost().getSøker().getIdentifikator()) && kanskjeBehandletBehov.value().getJournalpost().getBehandleneEnhet() != null
+        }.size
+        assertEquals(innkommendeBehov.filterValues { !it }.size, lagtTilBehandlendeEnhet)
     }
 
     class DummyOppslagClient : OppslagClient {
@@ -125,6 +156,30 @@ class JournalføringRutingComponentTest {
 
         return producer
     }
+
+    private fun behovConsumer(env: Environment): KafkaConsumer<String, Behov> {
+        val consumer: KafkaConsumer<String, Behov> = KafkaConsumer(Properties().apply {
+            put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, env.schemaRegistryUrl)
+            put(ConsumerConfig.GROUP_ID_CONFIG, "test-dagpenger-ruting-consumer")
+            put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, env.bootstrapServersUrl)
+            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            put(
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                INNGÅENDE_JOURNALPOST.keySerde.deserializer().javaClass.name
+            )
+            put(
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                INNGÅENDE_JOURNALPOST.valueSerde.deserializer().javaClass.name
+            )
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
+            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+            put(
+                SaslConfigs.SASL_JAAS_CONFIG,
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${env.username}\" password=\"${env.password}\";"
+            )
+        })
+
+        consumer.subscribe(listOf(INNGÅENDE_JOURNALPOST.name))
+        return consumer
+    }
 }
-
-

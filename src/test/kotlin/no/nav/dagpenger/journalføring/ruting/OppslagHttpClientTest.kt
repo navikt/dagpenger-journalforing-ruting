@@ -108,7 +108,6 @@ class OppslagHttpClientTest {
 
         val request = BehandlendeEnhetRequest("BLA", "1")
 
-
         OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
     }
 }
