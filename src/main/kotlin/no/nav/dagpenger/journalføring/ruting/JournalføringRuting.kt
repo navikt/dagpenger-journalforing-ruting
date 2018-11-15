@@ -1,10 +1,12 @@
 package no.nav.dagpenger.journalføring.ruting
 
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
+import no.nav.dagpenger.streams.configureAvroSerde
 import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
@@ -14,8 +16,11 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringRuting(val env: Environment, private val oppslagHttpClient: OppslagHttpClient) : Service() {
-    override val SERVICE_APP_ID = "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
+class JournalføringRuting(val env: Environment, private val oppslagClient: OppslagClient) : Service() {
+    override val SERVICE_APP_ID =
+        "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
+
+    override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
 
     companion object {
         @JvmStatic
@@ -27,31 +32,41 @@ class JournalføringRuting(val env: Environment, private val oppslagHttpClient: 
     }
 
     override fun setupStreams(): KafkaStreams {
-        println(SERVICE_APP_ID)
+        LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
+        val innkommendeJournalpost = INNGÅENDE_JOURNALPOST.copy(
+            valueSerde = configureAvroSerde<Behov>(
+                mapOf(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to env.schemaRegistryUrl)
+            )
+        )
         val builder = StreamsBuilder()
 
-        val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST)
+        val inngåendeJournalposter = builder.consumeTopic(innkommendeJournalpost)
 
         inngåendeJournalposter
-                .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-                .filter { _, behov -> behov.getJournalpost().getJournalpostType() != null }
-                .filter { _, behov -> behov.getJournalpost().getBehandleneEnhet() == null }
-                .mapValues(this::addBehandleneEnhet)
-                .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-                .toTopic(INNGÅENDE_JOURNALPOST)
+            .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
+            .filter { _, behov -> behov.getJournalpost().getJournalpostType() != null }
+            .filter { _, behov -> behov.getJournalpost().getBehandleneEnhet() == null }
+            .mapValues(this::addBehandleneEnhet)
+            .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
+            .toTopic(innkommendeJournalpost)
 
         return KafkaStreams(builder.build(), this.getConfig())
     }
 
     override fun getConfig(): Properties {
-        return streamConfig(appId = SERVICE_APP_ID, bootStapServerUrl = env.bootstrapServersUrl, credential = KafkaCredential(env.username, env.password))
+        return streamConfig(
+            appId = SERVICE_APP_ID,
+            bootStapServerUrl = env.bootstrapServersUrl,
+            credential = KafkaCredential(env.username, env.password)
+        )
     }
 
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getJournalpost().getSøker().getIdentifikator()
-        val (geografiskTilknytning, diskresjonsKode) = oppslagHttpClient.hentGeografiskTilknytning(fødselsnummer)
-        val behandlendeEnhet = oppslagHttpClient.hentBehandlendeEnhet(
-                BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode))
+        val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(fødselsnummer)
+        val behandlendeEnhet = oppslagClient.hentBehandlendeEnhet(
+            BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
+        )
 
         behov.getJournalpost().setBehandleneEnhet(behandlendeEnhet)
         return behov
