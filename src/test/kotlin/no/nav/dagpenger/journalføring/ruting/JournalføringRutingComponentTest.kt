@@ -24,6 +24,7 @@ import org.junit.Test
 import java.time.Duration
 import java.util.Properties
 import java.util.Random
+import java.util.UUID
 import kotlin.test.assertEquals
 
 class JournalføringRutingComponentTest {
@@ -97,9 +98,11 @@ class JournalføringRutingComponentTest {
         innkommendeBehov.forEach { fødselsnummer, behandlendeEnhet ->
             val innkommendeBehov: Behov = Behov
                 .newBuilder()
+                .setBehovId( UUID.randomUUID().toString())
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
+                        .setJournalpostId( UUID.randomUUID().toString())
                         .setSøker(Søker(fødselsnummer))
                         .setJournalpostType(JournalpostType.NY)
                         .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
