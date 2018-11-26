@@ -69,4 +69,4 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 }
 
 fun shouldBeProcessed(behov: Behov): Boolean =
-        !behov.getTrengerManuellBehandling() && behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
+        behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
