@@ -91,4 +91,4 @@ pitest {
     avoidCallsTo = setOf("kotlin.jvm.internal")
 }
 
-tasks.getByName("pitest").mustRunAfter("check")
+tasks.getByName("check").dependsOn("pitest")
