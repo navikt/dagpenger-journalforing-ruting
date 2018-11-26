@@ -2,6 +2,8 @@ package no.nav.dagpenger.journalføring.ruting
 
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
+import no.nav.dagpenger.events.hasBehandlendeEnhet
+import no.nav.dagpenger.events.hasHenvendelsesType
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -38,8 +40,7 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 
         inngåendeJournalposter
             .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-            .filter { _, behov -> behov.getJournalpost().getJournalpostType() != null }
-            .filter { _, behov -> behov.getJournalpost().getBehandleneEnhet() == null }
+            .filter { _, behov -> shouldBeProcessed(behov) }
             .mapValues(this::addBehandleneEnhet)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
@@ -56,13 +57,16 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
     }
 
     private fun addBehandleneEnhet(behov: Behov): Behov {
-        val fødselsnummer = behov.getJournalpost().getSøker().getIdentifikator()
+        val fødselsnummer = behov.getMottaker().getIdentifikator()
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(fødselsnummer)
         val behandlendeEnhet = oppslagClient.hentBehandlendeEnhet(
             BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
         )
 
-        behov.getJournalpost().setBehandleneEnhet(behandlendeEnhet)
+        behov.setBehandleneEnhet(behandlendeEnhet)
         return behov
     }
 }
+
+fun shouldBeProcessed(behov: Behov): Boolean =
+        !behov.getTrengerManuellBehandling() && behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
