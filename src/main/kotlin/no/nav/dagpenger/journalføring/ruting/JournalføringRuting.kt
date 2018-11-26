@@ -1,12 +1,10 @@
 package no.nav.dagpenger.journalføring.ruting
 
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
-import no.nav.dagpenger.streams.configureAvroSerde
 import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
@@ -33,14 +31,10 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 
     override fun setupStreams(): KafkaStreams {
         LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
-        val innkommendeJournalpost = INNGÅENDE_JOURNALPOST.copy(
-            valueSerde = configureAvroSerde<Behov>(
-                mapOf(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to env.schemaRegistryUrl)
-            )
-        )
+
         val builder = StreamsBuilder()
 
-        val inngåendeJournalposter = builder.consumeTopic(innkommendeJournalpost)
+        val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
         inngåendeJournalposter
             .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
@@ -48,7 +42,7 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
             .filter { _, behov -> behov.getJournalpost().getBehandleneEnhet() == null }
             .mapValues(this::addBehandleneEnhet)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-            .toTopic(innkommendeJournalpost)
+            .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
         return KafkaStreams(builder.build(), this.getConfig())
     }

@@ -20,6 +20,8 @@ apply {
 }
 
 repositories {
+    mavenCentral()
+    maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("https://repo.adeo.no/repository/maven-snapshots/")
     maven("https://repo.adeo.no/repository/maven-central")
     maven("http://packages.confluent.io/maven/")
@@ -57,7 +59,7 @@ val ktorVersion = "1.0.0"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("no.nav.dagpenger:streams:0.2.1-SNAPSHOT")
+    implementation("no.nav.dagpenger:streams:0.2.2-SNAPSHOT")
     implementation("no.nav.dagpenger:events:0.1.7-SNAPSHOT")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
@@ -97,4 +99,4 @@ pitest {
     avoidCallsTo = setOf("kotlin.jvm.internal")
 }
 
-tasks.getByName("check").dependsOn("pitest")
+tasks.getByName("pitest").mustRunAfter("check")
