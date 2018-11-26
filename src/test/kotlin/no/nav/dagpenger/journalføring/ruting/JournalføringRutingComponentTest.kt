@@ -6,9 +6,10 @@ import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
 import no.nav.common.embeddedutils.getAvailablePort
 import no.nav.dagpenger.events.avro.Behov
+import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.avro.Journalpost
-import no.nav.dagpenger.events.avro.JournalpostType
-import no.nav.dagpenger.events.avro.Søker
+import no.nav.dagpenger.events.avro.Mottaker
+import no.nav.dagpenger.events.avro.Søknad
 import no.nav.dagpenger.streams.Topics
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import org.apache.kafka.clients.CommonClientConfigs
@@ -99,13 +100,13 @@ class JournalføringRutingComponentTest {
             val innkommendeBehov: Behov = Behov
                 .newBuilder()
                 .setBehovId( UUID.randomUUID().toString())
+                .setMottaker(Mottaker(fødselsnummer))
+                .setHenvendelsesType(HenvendelsesType.newBuilder().setSøknad(Søknad()).build())
+                .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
                         .setJournalpostId( UUID.randomUUID().toString())
-                        .setSøker(Søker(fødselsnummer))
-                        .setJournalpostType(JournalpostType.NY)
-                        .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
                         .build()
                 )
                 .build()
@@ -121,7 +122,7 @@ class JournalføringRutingComponentTest {
         assertEquals(13, behovsListe.size)
 
         val lagtTilBehandlendeEnhet = behovsListe.filter { kanskjeBehandletBehov ->
-            innkommendeBehov.filterValues { !it }.containsKey(kanskjeBehandletBehov.value().getJournalpost().getSøker().getIdentifikator()) && kanskjeBehandletBehov.value().getJournalpost().getBehandleneEnhet() != null
+            innkommendeBehov.filterValues { !it }.containsKey(kanskjeBehandletBehov.value().getMottaker().getIdentifikator()) && kanskjeBehandletBehov.value().getBehandleneEnhet() != null
         }.size
         assertEquals(innkommendeBehov.filterValues { !it }.size, lagtTilBehandlendeEnhet)
     }
