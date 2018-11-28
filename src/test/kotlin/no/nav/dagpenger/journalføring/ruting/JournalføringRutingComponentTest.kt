@@ -26,10 +26,8 @@ import java.time.Duration
 import java.util.Properties
 import java.util.Random
 import java.util.UUID
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
-@Ignore
 class JournalføringRutingComponentTest {
 
     private val LOGGER = KotlinLogging.logger {}
