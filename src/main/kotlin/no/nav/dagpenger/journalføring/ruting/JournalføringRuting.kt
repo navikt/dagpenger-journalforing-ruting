@@ -59,6 +59,8 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         return props
     }
 
+
+
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getMottaker().getIdentifikator()
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(fødselsnummer)
