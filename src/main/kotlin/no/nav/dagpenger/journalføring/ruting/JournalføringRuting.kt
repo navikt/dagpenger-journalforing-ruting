@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.hasBehandlendeEnhet
 import no.nav.dagpenger.events.hasHenvendelsesType
+import no.nav.dagpenger.metrics.aCounter
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -23,6 +24,11 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 
     override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
 
+    private val jpCounter = aCounter(
+        name = "journalpost_behandlende_enhet",
+        labelNames = listOf("behandlendeEnhet", "diskresjonsKode"),
+        help = "Number of Journalposts processed by journalƒøring-ruting"
+    )
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
@@ -65,6 +71,8 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         val behandlendeEnhet = oppslagClient.hentBehandlendeEnhet(
             BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
         )
+
+        jpCounter.labels(behandlendeEnhet, diskresjonsKode).inc()
 
         behov.setBehandleneEnhet(behandlendeEnhet)
         return behov
