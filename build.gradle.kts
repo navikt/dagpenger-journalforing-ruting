@@ -18,6 +18,7 @@ apply {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("http://packages.confluent.io/maven/")
     maven("https://dl.bintray.com/kotlin/ktor/")
