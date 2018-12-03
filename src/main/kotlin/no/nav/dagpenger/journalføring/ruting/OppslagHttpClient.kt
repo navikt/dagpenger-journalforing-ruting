@@ -8,7 +8,7 @@ import com.google.gson.Gson
 class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
 
     override fun hentGeografiskTilknytning(fødselsNummer: String): GeografiskTilknytningResponse {
-        val url = "${oppslagUrl}person/geografisk-tilknytning"
+        val url = "$oppslagUrl/person/geografisk-tilknytning"
         val (_, response, result) = with(url.httpPost().body(fødselsNummer)) {
             responseObject<GeografiskTilknytningResponse>()
         }
@@ -20,7 +20,7 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
     }
 
     override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): String {
-        val url = "${oppslagUrl}arbeidsfordeling/behandlende-enhet"
+        val url = "$oppslagUrl/arbeidsfordeling/behandlende-enhet"
         val json = Gson().toJson(request).toString()
         val (_, response, result) = with(
                 url.httpPost()
