@@ -4,14 +4,19 @@ import com.github.kittinunf.fuel.gson.responseObject
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.result.Result
 import com.google.gson.Gson
+import mu.KotlinLogging
+
+private val LOGGER = KotlinLogging.logger {}
 
 class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
 
-    override fun hentGeografiskTilknytning(fødselsNummer: String): GeografiskTilknytningResponse {
-        val url = "$oppslagUrl/person/geografisk-tilknytning"
-        val (_, response, result) = with(url.httpPost().body(fødselsNummer)) {
-            responseObject<GeografiskTilknytningResponse>()
+    override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
+        val url = "${oppslagUrl}person/geografisk-tilknytning"
+        val json = Gson().toJson(request).toString()
+        val (_, response, result) = with(url.httpPost().body(json)) {
+                responseObject<GeografiskTilknytningResponse>()
         }
+
         return when (result) {
             is Result.Failure -> throw OppslagException(
                     response.statusCode, response.responseMessage, result.getException())
@@ -19,14 +24,13 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
         }
     }
 
-    override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): String {
-        val url = "$oppslagUrl/arbeidsfordeling/behandlende-enhet"
+    override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse {
+        val url = "${oppslagUrl}arbeidsfordeling/behandlende-enhet"
         val json = Gson().toJson(request).toString()
-        val (_, response, result) = with(
-                url.httpPost()
-                        .header(mapOf("Content-Type" to "application/json"))
-                        .body(json)) {
-            responseObject<String>()
+        val (_, response, result) = with(url.httpPost()
+                    .header(mapOf("Content-Type" to "application/json"))
+                    .body(json)) {
+                responseObject<BehandlendeEnhetResponse>()
         }
         return when (result) {
             is Result.Failure -> throw OppslagException(
@@ -35,6 +39,8 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
         }
     }
 }
+
+data class GeografiskTilknytningRequest(val fødselsnummer: String)
 
 data class GeografiskTilknytningResponse(
     val geografiskTilknytning: String,
@@ -45,5 +51,7 @@ data class BehandlendeEnhetRequest(
     val geografiskTilknytning: String,
     val diskresjonskode: String?
 )
+
+data class BehandlendeEnhetResponse(val behandlendeEnhet: String)
 
 class OppslagException(val statusCode: Int, override val message: String, override val cause: Throwable) : RuntimeException(message, cause)

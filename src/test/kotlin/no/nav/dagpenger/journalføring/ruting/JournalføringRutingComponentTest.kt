@@ -130,11 +130,11 @@ class JournalføringRutingComponentTest {
     }
 
     class DummyOppslagClient : OppslagClient {
-        override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): String {
-            return "test"
+        override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse {
+            return BehandlendeEnhetResponse("test")
         }
 
-        override fun hentGeografiskTilknytning(fødselsNummer: String): GeografiskTilknytningResponse {
+        override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
             return GeografiskTilknytningResponse("BLA", "1")
         }
     }
