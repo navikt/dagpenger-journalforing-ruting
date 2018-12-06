@@ -22,7 +22,7 @@ class OppslagHttpClientTest {
         val fnr = "12345678912"
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/person/geografisk-tilknytning"))
+            WireMock.post(WireMock.urlEqualTo("//person/geografisk-tilknytning"))
                 .withRequestBody(EqualToPattern(
                         """
                             {"fødselsnummer":"12345678912"}
@@ -55,7 +55,7 @@ class OppslagHttpClientTest {
         val fnr = "12345678912"
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/person/geografisk-tilknytning"))
+            WireMock.post(WireMock.urlEqualTo("//person/geografisk-tilknytning"))
                 .withRequestBody(EqualToPattern(
                         """
                             {"fødselsnummer":"12345678912"}
@@ -71,7 +71,7 @@ class OppslagHttpClientTest {
     @Test
     fun `hent behandlende enhet`() {
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/arbeidsfordeling/behandlende-enhet"))
+            WireMock.post(WireMock.urlEqualTo("//arbeidsfordeling/behandlende-enhet"))
                 .withRequestBody(
                     EqualToJsonPattern(
                         """
@@ -109,7 +109,7 @@ class OppslagHttpClientTest {
     fun `hent behandlende enhet feiler`() {
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/arbeidsfordeling/behandlende-enhet"))
+            WireMock.post(WireMock.urlEqualTo("//arbeidsfordeling/behandlende-enhet"))
                 .withRequestBody(
                     EqualToJsonPattern(
                         """

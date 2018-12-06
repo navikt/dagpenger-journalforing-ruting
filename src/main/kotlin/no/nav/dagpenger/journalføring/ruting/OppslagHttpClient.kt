@@ -11,7 +11,7 @@ private val LOGGER = KotlinLogging.logger {}
 class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
 
     override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
-        val url = "${oppslagUrl}person/geografisk-tilknytning"
+        val url = "$oppslagUrl/person/geografisk-tilknytning"
         val json = Gson().toJson(request).toString()
         val (_, response, result) = with(url.httpPost().body(json)) {
                 responseObject<GeografiskTilknytningResponse>()
@@ -24,7 +24,7 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
     }
 
     override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse {
-        val url = "${oppslagUrl}arbeidsfordeling/behandlende-enhet"
+        val url = "$oppslagUrl/arbeidsfordeling/behandlende-enhet"
         val json = Gson().toJson(request).toString()
         val (_, response, result) = with(url.httpPost()
                     .header(mapOf("Content-Type" to "application/json"))
