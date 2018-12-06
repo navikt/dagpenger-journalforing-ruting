@@ -13,7 +13,9 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
     override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
         val url = "$oppslagUrl/person/geografisk-tilknytning"
         val json = Gson().toJson(request).toString()
-        val (_, response, result) = with(url.httpPost().body(json)) {
+        val (_, response, result) = with(url.httpPost()
+                .header(mapOf("Content-Type" to "application/json"))
+                .body(json)) {
                 responseObject<GeografiskTilknytningResponse>()
         }
         return when (result) {
