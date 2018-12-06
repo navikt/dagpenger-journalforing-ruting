@@ -16,7 +16,6 @@ class OppslagHttpClient(private val oppslagUrl: String) : OppslagClient {
         val (_, response, result) = with(url.httpPost().body(json)) {
                 responseObject<GeografiskTilknytningResponse>()
         }
-
         return when (result) {
             is Result.Failure -> throw OppslagException(
                     response.statusCode, response.responseMessage, result.getException())
@@ -49,9 +48,15 @@ data class GeografiskTilknytningResponse(
 
 data class BehandlendeEnhetRequest(
     val geografiskTilknytning: String,
-    val diskresjonskode: String?
+    val diskresjonskode: String?,
+    val tema: String = "DAG"
 )
 
-data class BehandlendeEnhetResponse(val behandlendeEnhet: String)
+data class BehandlendeEnhet(
+    var enhetId: String,
+    var enhetNavn: String
+)
+
+data class BehandlendeEnhetResponse(val behandlendeEnheter: List<BehandlendeEnhet>)
 
 class OppslagException(val statusCode: Int, override val message: String, override val cause: Throwable) : RuntimeException(message, cause)

@@ -87,15 +87,22 @@ class OppslagHttpClientTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody(
                                 """
-                                    {"behandlendeEnhet":"OSLO"}
-                                """.trimIndent())
+                            {
+                                "behandlendeEnheter": [
+                                    {
+                                        "enhetId": "0118",
+                                        "enhetNavn": "Test"
+                                    }
+                                ]
+                            }
+                            """.trimIndent())
                 )
         )
 
         val request = BehandlendeEnhetRequest("BLA", "1")
 
         val response = OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
-        assertEquals("OSLO", response.behandlendeEnhet)
+        assertEquals("0118", response.behandlendeEnheter[0].enhetId)
     }
 
     @Test(expected = OppslagException::class)

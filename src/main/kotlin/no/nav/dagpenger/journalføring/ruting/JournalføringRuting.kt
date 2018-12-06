@@ -61,16 +61,22 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getMottaker().getIdentifikator()
+
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(
                 GeografiskTilknytningRequest(fødselsnummer))
-        val (behandlendeEnhet) = oppslagClient.hentBehandlendeEnhet(
+
+        val (behandlendeEnheter) = oppslagClient.hentBehandlendeEnhet(
             BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
         )
 
-        behov.setBehandleneEnhet(behandlendeEnhet)
+        val behandlendeEnhet = behandlendeEnheter.minBy { it.enhetId } ?: throw RutingException("Missing enhetId")
+
+        behov.setBehandleneEnhet(behandlendeEnhet.enhetId)
         return behov
     }
 }
 
 fun shouldBeProcessed(behov: Behov): Boolean =
         behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
+
+class RutingException(override val message: String) : RuntimeException(message)

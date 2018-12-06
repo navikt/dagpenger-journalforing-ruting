@@ -131,7 +131,7 @@ class JournalføringRutingComponentTest {
 
     class DummyOppslagClient : OppslagClient {
         override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse {
-            return BehandlendeEnhetResponse("test")
+            return BehandlendeEnhetResponse(listOf(BehandlendeEnhet("test", "test")))
         }
 
         override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
