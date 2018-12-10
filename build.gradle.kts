@@ -51,6 +51,7 @@ val kafkaVersion = "2.0.0"
 val confluentVersion = "4.1.2"
 val prometheusVersion = "0.5.0"
 val ktorVersion = "1.0.0"
+val log4j2Version = "2.11.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -69,6 +70,11 @@ dependencies {
     api("io.confluent:kafka-streams-avro-serde:$confluentVersion")
 
     compile("io.ktor:ktor-server-netty:$ktorVersion")
+
+    implementation("org.apache.logging.log4j:log4j-api:$log4j2Version")
+    implementation("org.apache.logging.log4j:log4j-core:$log4j2Version")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")
+    implementation("com.vlkan.log4j2:log4j2-logstash-layout-fatjar:0.15")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
