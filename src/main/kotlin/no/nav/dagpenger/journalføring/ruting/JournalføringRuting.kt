@@ -11,7 +11,6 @@ import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
 import java.util.Properties
@@ -61,23 +60,28 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
                 bootStapServerUrl = env.bootstrapServersUrl,
                 credential = KafkaCredential(env.username, env.password)
         )
-        props[ConsumerConfig.AUTO_OFFSET_RESET_CONFIG] = "latest"
         return props
     }
 
     private fun addBehandleneEnhet(behov: Behov): Behov {
         val fødselsnummer = behov.getMottaker().getIdentifikator()
-        val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(fødselsnummer)
-        val behandlendeEnhet = oppslagClient.hentBehandlendeEnhet(
+
+        val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(
+                GeografiskTilknytningRequest(fødselsnummer))
+
+        val (behandlendeEnheter) = oppslagClient.hentBehandlendeEnhet(
             BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
         )
 
-        jpCounter.labels(behandlendeEnhet, diskresjonsKode).inc()
+        val behandlendeEnhet = behandlendeEnheter.minBy { it.enhetId } ?: throw RutingException("Missing enhetId")
 
-        behov.setBehandleneEnhet(behandlendeEnhet)
+        jpCounter.labels(behandlendeEnhet.enhetId, diskresjonsKode).inc()
+        behov.setBehandleneEnhet(behandlendeEnhet.enhetId)
         return behov
     }
 }
 
 fun shouldBeProcessed(behov: Behov): Boolean =
         behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
+
+class RutingException(override val message: String) : RuntimeException(message)

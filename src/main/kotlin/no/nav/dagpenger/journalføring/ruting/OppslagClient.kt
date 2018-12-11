@@ -1,6 +1,6 @@
 package no.nav.dagpenger.journalføring.ruting
 
 interface OppslagClient {
-    fun hentGeografiskTilknytning(fødselsNummer: String): GeografiskTilknytningResponse
-    fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): String
+    fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse
+    fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse
 }

@@ -22,8 +22,12 @@ class OppslagHttpClientTest {
         val fnr = "12345678912"
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/person/geografisk-tilknytning"))
-                .withRequestBody(EqualToPattern(fnr))
+            WireMock.post(WireMock.urlEqualTo("//person/geografisk-tilknytning"))
+                .withRequestBody(EqualToPattern(
+                        """
+                            {"fødselsnummer":"12345678912"}
+                        """.trimIndent()
+                ))
                 .willReturn(
                     WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
@@ -38,7 +42,9 @@ class OppslagHttpClientTest {
                 )
         )
 
-        val geografiskTilknytningResponse = OppslagHttpClient(wireMockRule.url("")).hentGeografiskTilknytning(fnr)
+        val geografiskTilknytningResponse =
+                OppslagHttpClient(wireMockRule.url(""))
+                        .hentGeografiskTilknytning(GeografiskTilknytningRequest(fnr))
         assertEquals("BLA", geografiskTilknytningResponse.geografiskTilknytning)
         assertEquals("1", geografiskTilknytningResponse.diskresjonskode)
     }
@@ -49,20 +55,23 @@ class OppslagHttpClientTest {
         val fnr = "12345678912"
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/person/geografisk-tilknytning"))
-                .withRequestBody(EqualToPattern(fnr))
+            WireMock.post(WireMock.urlEqualTo("//person/geografisk-tilknytning"))
+                .withRequestBody(EqualToPattern(
+                        """
+                            {"fødselsnummer":"12345678912"}
+                        """.trimIndent()))
                 .willReturn(
                     WireMock.serverError()
                 )
         )
 
-        OppslagHttpClient(wireMockRule.url("")).hentGeografiskTilknytning(fnr)
+        OppslagHttpClient(wireMockRule.url("")).hentGeografiskTilknytning(GeografiskTilknytningRequest(fnr))
     }
 
     @Test
     fun `hent behandlende enhet`() {
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/arbeidsfordeling/behandlende-enhet"))
+            WireMock.post(WireMock.urlEqualTo("//arbeidsfordeling/behandlende-enhet"))
                 .withRequestBody(
                     EqualToJsonPattern(
                         """
@@ -76,21 +85,31 @@ class OppslagHttpClientTest {
                 .willReturn(
                     WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("OSLO")
+                        .withBody(
+                                """
+                            {
+                                "behandlendeEnheter": [
+                                    {
+                                        "enhetId": "0118",
+                                        "enhetNavn": "Test"
+                                    }
+                                ]
+                            }
+                            """.trimIndent())
                 )
         )
 
         val request = BehandlendeEnhetRequest("BLA", "1")
 
-        val behandlendeEnhet = OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
-        assertEquals("OSLO", behandlendeEnhet)
+        val response = OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
+        assertEquals("0118", response.behandlendeEnheter[0].enhetId)
     }
 
     @Test(expected = OppslagException::class)
     fun `hent behandlende enhet feiler`() {
 
         stubFor(
-            WireMock.post(WireMock.urlEqualTo("/arbeidsfordeling/behandlende-enhet"))
+            WireMock.post(WireMock.urlEqualTo("//arbeidsfordeling/behandlende-enhet"))
                 .withRequestBody(
                     EqualToJsonPattern(
                         """

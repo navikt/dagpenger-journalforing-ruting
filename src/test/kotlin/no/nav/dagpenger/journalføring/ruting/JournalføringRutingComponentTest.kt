@@ -26,10 +26,8 @@ import java.time.Duration
 import java.util.Properties
 import java.util.Random
 import java.util.UUID
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
-@Ignore
 class JournalføringRutingComponentTest {
 
     private val LOGGER = KotlinLogging.logger {}
@@ -92,7 +90,7 @@ class JournalføringRutingComponentTest {
 
         val ruting = JournalføringRuting(env, DummyOppslagClient())
 
-        //produce behov...
+        // produce behov...
 
         val behovProducer = behovProducer(env)
 
@@ -101,14 +99,14 @@ class JournalføringRutingComponentTest {
         innkommendeBehov.forEach { fødselsnummer, behandlendeEnhet ->
             val innkommendeBehov: Behov = Behov
                 .newBuilder()
-                .setBehovId( UUID.randomUUID().toString())
+                .setBehovId(UUID.randomUUID().toString())
                 .setMottaker(Mottaker(fødselsnummer))
                 .setHenvendelsesType(HenvendelsesType.newBuilder().setSøknad(Søknad()).build())
                 .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
-                        .setJournalpostId( UUID.randomUUID().toString())
+                        .setJournalpostId(UUID.randomUUID().toString())
                         .build()
                 )
                 .build()
@@ -130,11 +128,11 @@ class JournalføringRutingComponentTest {
     }
 
     class DummyOppslagClient : OppslagClient {
-        override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): String {
-            return "test"
+        override fun hentBehandlendeEnhet(request: BehandlendeEnhetRequest): BehandlendeEnhetResponse {
+            return BehandlendeEnhetResponse(listOf(BehandlendeEnhet("test", "test")))
         }
 
-        override fun hentGeografiskTilknytning(fødselsNummer: String): GeografiskTilknytningResponse {
+        override fun hentGeografiskTilknytning(request: GeografiskTilknytningRequest): GeografiskTilknytningResponse {
             return GeografiskTilknytningResponse("BLA", "1")
         }
     }
