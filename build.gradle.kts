@@ -3,12 +3,11 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     id("application")
-    kotlin("jvm") version "1.3.10"
+    kotlin("jvm") version "1.3.11"
     id("com.diffplug.gradle.spotless") version "3.13.0"
-    id("com.palantir.docker") version "0.20.1"
-    id("com.palantir.git-version") version "0.11.0"
     id("java-library")
     id("info.solidsoft.pitest") version "1.3.0"
+    id("com.github.johnrengelman.shadow") version "4.0.3"
 }
 
 apply {
@@ -25,24 +24,14 @@ repositories {
     maven("https://dl.bintray.com/kittinunf/maven")
 }
 
-val gitVersion: groovy.lang.Closure<Any> by extra
-version = gitVersion()
-group = "no.nav.dagpenger"
-
 application {
     applicationName = "dagpenger-journalforing-ruting"
     mainClassName = "no.nav.dagpenger.journalføring.ruting.JournalføringRuting"
 }
 
-docker {
-    name = "repo.adeo.no:5443/${application.applicationName}"
-    buildArgs(mapOf(
-        "APP_NAME" to application.applicationName,
-        "DIST_TAR" to "${application.applicationName}-${project.version}"
-    ))
-    files(tasks.findByName("distTar")?.outputs)
-    pull(true)
-    tags(project.version.toString())
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 val kotlinLoggingVersion = "1.4.9"
@@ -96,6 +85,8 @@ pitest {
     pitestVersion = "1.4.3"
     coverageThreshold = 80
     avoidCallsTo = setOf("kotlin.jvm.internal")
+    timestampedReports = false
+    targetClasses = setOf("no.nav.dagpenger.*")
 }
 
 tasks.getByName("test").finalizedBy("pitest")
