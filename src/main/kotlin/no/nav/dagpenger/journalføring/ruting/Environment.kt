@@ -5,7 +5,7 @@ data class Environment(
     val username: String = getEnvVar("SRVDAGPENGER_JOURNALFORING_RUTING_USERNAME"),
     val password: String = getEnvVar("SRVDAGPENGER_JOURNALFORING_RUTING_PASSWORD"),
     val bootstrapServersUrl: String = getEnvVar("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-    val schemaRegistryUrl: String = getEnvVar("KAFKA_SCHEMA_REGISTRY_URL", "localhost:8081"),
+    val schemaRegistryUrl: String = getEnvVar("KAFKA_SCHEMA_REGISTRY_URL", "http://localhost:8081"),
     val fasitEnvironmentName: String = getEnvVar("FASIT_ENVIRONMENT_NAME", "").filterNot { it in "p" }, //filter out productiony
     val httpPort: Int? = null
 )
