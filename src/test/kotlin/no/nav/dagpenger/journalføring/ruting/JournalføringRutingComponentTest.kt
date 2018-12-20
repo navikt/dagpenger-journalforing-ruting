@@ -6,7 +6,6 @@ import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
 import no.nav.common.embeddedutils.getAvailablePort
 import no.nav.dagpenger.events.avro.Behov
-import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.avro.Journalpost
 import no.nav.dagpenger.events.avro.Mottaker
 import no.nav.dagpenger.events.avro.Søknad
@@ -101,7 +100,7 @@ class JournalføringRutingComponentTest {
                 .newBuilder()
                 .setBehovId(UUID.randomUUID().toString())
                 .setMottaker(Mottaker(fødselsnummer))
-                .setHenvendelsesType(HenvendelsesType.newBuilder().setSøknad(Søknad()).build())
+                .setHenvendelsesType(Søknad.newBuilder().build())
                 .setBehandleneEnhet(if (behandlendeEnhet) "behandledeENHET" else null)
                 .setJournalpost(
                     Journalpost
