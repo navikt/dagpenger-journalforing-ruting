@@ -1,6 +1,6 @@
 name: dagpenger-journalforing-ruting
 image: repo.adeo.no:5443/dagpenger-journalforing-ruting
-team: dagpenger
+team: teamdagpenger
 replicas:
   min: 2
   max: 4
