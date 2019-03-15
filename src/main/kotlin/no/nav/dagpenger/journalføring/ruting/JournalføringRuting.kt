@@ -11,8 +11,8 @@ import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
-import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
+import org.apache.kafka.streams.Topology
 import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
@@ -28,6 +28,7 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         labelNames = listOf("behandlendeEnhet", "diskresjonsKode"),
         help = "Number of Journalposts processed by journalƒøring-ruting"
     )
+
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
@@ -37,9 +38,7 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         }
     }
 
-    override fun setupStreams(): KafkaStreams {
-        LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
-
+    override fun buildTopology(): Topology {
         val builder = StreamsBuilder()
 
         val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
@@ -50,15 +49,14 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
             .mapValues(this::addBehandleneEnhet)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
-
-        return KafkaStreams(builder.build(), this.getConfig())
+        return builder.build()
     }
 
     override fun getConfig(): Properties {
         val props = streamConfig(
-                appId = SERVICE_APP_ID,
-                bootStapServerUrl = env.bootstrapServersUrl,
-                credential = KafkaCredential(env.username, env.password)
+            appId = SERVICE_APP_ID,
+            bootStapServerUrl = env.bootstrapServersUrl,
+            credential = KafkaCredential(env.username, env.password)
         )
         return props
     }
@@ -67,7 +65,8 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         val fødselsnummer = behov.getMottaker().getIdentifikator()
 
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(
-                GeografiskTilknytningRequest(fødselsnummer))
+            GeografiskTilknytningRequest(fødselsnummer)
+        )
 
         val (behandlendeEnheter) = oppslagClient.hentBehandlendeEnhet(
             BehandlendeEnhetRequest(geografiskTilknytning, diskresjonsKode)
@@ -82,6 +81,6 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
 }
 
 fun shouldBeProcessed(behov: Behov): Boolean =
-        behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
+    behov.hasHenvendelsesType() && !behov.hasBehandlendeEnhet()
 
 class RutingException(override val message: String) : RuntimeException(message)
