@@ -22,6 +22,7 @@ repositories {
     maven("https://dl.bintray.com/kotlin/ktor/")
     maven("https://dl.bintray.com/kotlin/kotlinx")
     maven("https://dl.bintray.com/kittinunf/maven")
+    maven("https://jitpack.io")
 }
 
 application {
@@ -44,8 +45,8 @@ val log4j2Version = "2.11.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("no.nav.dagpenger:streams:0.3.3-SNAPSHOT")
-    implementation("no.nav.dagpenger:events:0.3.11-SNAPSHOT")
+    implementation("com.github.navikt:dagpenger-streams:2019.05.20-12.02.83ff2b7cb7f6")
+    implementation("com.github.navikt:dagpenger-events:2019.05.20-11.56.33cd4c73a439")
     implementation("no.nav.dagpenger:dagpenger-metrics:1.0-SNAPSHOT")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
