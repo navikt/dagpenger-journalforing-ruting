@@ -28,7 +28,7 @@ repositories {
 
 application {
     applicationName = "dagpenger-journalforing-ruting"
-    mainClassName = "no.nav.dagpenger.journalføring.ruting.JournalføringRuting"
+    mainClassName = "no.nav.dagpenger.journalføring.ruting.JournalføringRutingKt"
 }
 
 java {
