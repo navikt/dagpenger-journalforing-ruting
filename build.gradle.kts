@@ -2,27 +2,28 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
-    id("application")
-    kotlin("jvm") version "1.3.21"
-    id("com.diffplug.gradle.spotless") version "3.13.0"
-    id("java-library")
-    id("info.solidsoft.pitest") version "1.3.0"
-    id("com.github.johnrengelman.shadow") version "4.0.3"
+    application
+    kotlin("jvm") version Kotlin.version
+    id(Spotless.spotless) version Spotless.version
+    id(Shadow.shadow) version Shadow.version
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
 }
 
 apply {
-    plugin("com.diffplug.gradle.spotless")
-    plugin("info.solidsoft.pitest")
+    plugin(Spotless.spotless)
 }
 
 repositories {
     mavenCentral()
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
+    jcenter()
     maven("http://packages.confluent.io/maven/")
-    maven("https://dl.bintray.com/kotlin/ktor/")
-    maven("https://dl.bintray.com/kotlin/kotlinx")
-    maven("https://dl.bintray.com/kittinunf/maven")
     maven("https://jitpack.io")
+    maven("https://oss.sonatype.org/content/repositories/snapshots/")
 }
 
 application {
@@ -35,65 +36,72 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-val kotlinLoggingVersion = "1.6.22"
-val fuelVersion = "2.1.0"
-val kafkaVersion = "2.0.1"
-val confluentVersion = "4.1.2"
-val prometheusVersion = "0.6.0"
-val ktorVersion = "1.0.0"
-val log4j2Version = "2.11.1"
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> { kotlinOptions.jvmTarget = "1.8" }
+
+configurations {
+    all {
+        resolutionStrategy {
+            force("com.fasterxml.jackson.core:jackson-databind:2.10.0")
+            force("com.fasterxml.jackson.core:jackson-core:2.10.0")
+        }
+    }
+}
 
 dependencies {
-    implementation(kotlin("stdlib"))
-    implementation("com.github.navikt:dagpenger-streams:2019.06.21-11.13.27b0917e56b9")
-    implementation("com.github.navikt:dagpenger-events:2019.05.20-11.56.33cd4c73a439")
-    implementation("no.nav.dagpenger:dagpenger-metrics:1.0-SNAPSHOT")
+    implementation(kotlin("stdlib-jdk8"))
+    implementation(Dagpenger.Streams)
+    implementation(Dagpenger.Events)
 
-    implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-    implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
-    implementation("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
-    implementation("com.google.code.gson:gson:2.8.5")
+    implementation(Dagpenger.Biblioteker.stsKlient)
 
-    api("org.apache.kafka:kafka-clients:$kafkaVersion")
-    api("org.apache.kafka:kafka-streams:$kafkaVersion")
-    api("io.confluent:kafka-streams-avro-serde:$confluentVersion")
+    implementation(Prometheus.common)
 
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation(Konfig.konfig)
 
-    implementation("org.apache.logging.log4j:log4j-api:$log4j2Version")
-    implementation("org.apache.logging.log4j:log4j-core:$log4j2Version")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")
-    implementation("com.vlkan.log4j2:log4j2-logstash-layout-fatjar:0.15")
+    implementation(Fuel.fuel)
+    implementation(Fuel.library("moshi"))
+    implementation(Moshi.moshi)
+    implementation(Moshi.moshiKotlin)
+    implementation(Moshi.moshiAdapters)
+
+    implementation(Log4j2.api)
+    implementation(Log4j2.core)
+    implementation(Log4j2.slf4j)
+    implementation(Log4j2.Logstash.logstashLayout)
+    implementation(Kotlin.Logging.kotlinLogging)
+
+    implementation(Kafka.clients)
+    implementation(Kafka.streams)
+    implementation(Kafka.Confluent.avroStreamSerdes)
+
+    implementation(Ktor.serverNetty)
 
     testImplementation(kotlin("test"))
-    testImplementation(kotlin("test-junit"))
-    testImplementation("junit:junit:4.12")
-    testImplementation("com.github.tomakehurst:wiremock:2.19.0")
-    testImplementation("no.nav:kafka-embedded-env:2.0.2")
+    testImplementation(Junit5.api)
+    testImplementation(Junit5.kotlinRunner)
+    testRuntimeOnly(Junit5.engine)
+    testImplementation(Wiremock.standalone)
+    testImplementation(KafkaEmbedded.env)
+    testImplementation(Kafka.streamTestUtils)
+    testImplementation(Mockk.mockk)
 }
 
 spotless {
     kotlin {
-        ktlint("0.31.0")
+        ktlint(Klint.version)
     }
     kotlinGradle {
         target("*.gradle.kts", "additionalScripts/*.gradle.kts")
-        ktlint("0.31.0")
+        ktlint(Klint.version)
     }
 }
 
-pitest {
-    threads = 4
-    pitestVersion = "1.4.3"
-    coverageThreshold = 80
-    avoidCallsTo = setOf("kotlin.jvm.internal")
-    timestampedReports = false
-    targetClasses = setOf("no.nav.dagpenger.*")
+tasks.named("compileKotlin") {
+    dependsOn("spotlessCheck")
 }
 
-tasks.getByName("test").finalizedBy("pitest")
-
 tasks.withType<Test> {
+    useJUnitPlatform()
     testLogging {
         showExceptions = true
         showStackTraces = true

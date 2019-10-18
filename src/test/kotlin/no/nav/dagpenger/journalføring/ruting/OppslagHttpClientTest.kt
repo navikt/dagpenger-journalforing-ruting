@@ -1,20 +1,41 @@
 package no.nav.dagpenger.journalføring.ruting
 
+import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
-import com.github.tomakehurst.wiremock.junit.WireMockRule
 import com.github.tomakehurst.wiremock.matching.EqualToJsonPattern
 import com.github.tomakehurst.wiremock.matching.EqualToPattern
-import org.junit.Rule
-import org.junit.Test
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+
 import kotlin.test.assertEquals
 
 class OppslagHttpClientTest {
 
-    @Rule
-    @JvmField
-    var wireMockRule = WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort())
+    companion object {
+        val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
+
+        @BeforeAll
+        @JvmStatic
+        fun start() {
+            server.start()
+        }
+
+        @AfterAll
+        @JvmStatic
+        fun stop() {
+            server.stop()
+        }
+    }
+
+    @BeforeEach
+    fun configure() {
+        WireMock.configureFor(server.port())
+    }
 
     @Test
     fun `hent geografisk tilknytning`() {
@@ -43,13 +64,13 @@ class OppslagHttpClientTest {
         )
 
         val geografiskTilknytningResponse =
-                OppslagHttpClient(wireMockRule.url(""))
+                OppslagHttpClient(server.url(""))
                         .hentGeografiskTilknytning(GeografiskTilknytningRequest(fnr))
         assertEquals("BLA", geografiskTilknytningResponse.geografiskTilknytning)
         assertEquals("1", geografiskTilknytningResponse.diskresjonskode)
     }
 
-    @Test(expected = OppslagException::class)
+    @Test
     fun `hent geografisk tilknytning feiler `() {
 
         val fnr = "12345678912"
@@ -65,7 +86,7 @@ class OppslagHttpClientTest {
                 )
         )
 
-        OppslagHttpClient(wireMockRule.url("")).hentGeografiskTilknytning(GeografiskTilknytningRequest(fnr))
+        assertThrows<OppslagException> { OppslagHttpClient(server.url("")).hentGeografiskTilknytning(GeografiskTilknytningRequest(fnr)) }
     }
 
     @Test
@@ -101,11 +122,11 @@ class OppslagHttpClientTest {
 
         val request = BehandlendeEnhetRequest("BLA", "1")
 
-        val response = OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
+        val response = OppslagHttpClient(server.url("")).hentBehandlendeEnhet(request)
         assertEquals("0118", response.behandlendeEnheter[0].enhetId)
     }
 
-    @Test(expected = OppslagException::class)
+    @Test
     fun `hent behandlende enhet feiler`() {
 
         stubFor(
@@ -127,6 +148,6 @@ class OppslagHttpClientTest {
 
         val request = BehandlendeEnhetRequest("BLA", "1")
 
-        OppslagHttpClient(wireMockRule.url("")).hentBehandlendeEnhet(request)
+        assertThrows<OppslagException> { OppslagHttpClient(server.url("")).hentBehandlendeEnhet(request) }
     }
 }

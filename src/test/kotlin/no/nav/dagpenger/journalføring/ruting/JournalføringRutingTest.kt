@@ -4,7 +4,8 @@ import no.nav.dagpenger.events.avro.Annet
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Ettersending
 import no.nav.dagpenger.events.avro.Søknad
-import org.junit.Test
+import org.junit.jupiter.api.Test
+
 import kotlin.test.assertFalse
 
 class JournalføringRutingTest {

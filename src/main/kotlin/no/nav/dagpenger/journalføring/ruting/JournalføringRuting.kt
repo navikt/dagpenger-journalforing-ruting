@@ -1,10 +1,11 @@
 package no.nav.dagpenger.journalføring.ruting
 
+import io.prometheus.client.Counter
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.hasBehandlendeEnhet
 import no.nav.dagpenger.events.hasHenvendelsesType
-import no.nav.dagpenger.metrics.aCounter
+
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -22,12 +23,20 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
 
     override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
+    private val DAGPENGER_NAMESPACE = "dagpenger"
 
-    private val jpCounter = aCounter(
-        name = "journalpost_behandlende_enhet",
-        labelNames = listOf("behandlendeEnhet", "diskresjonsKode"),
-        help = "Number of Journalposts processed by journalƒøring-ruting"
+    private val labelNames = listOf(
+        "behandlendeEnhet",
+        "diskresjonsKode"
     )
+
+    private val jpCounter = Counter
+        .build()
+        .namespace(DAGPENGER_NAMESPACE)
+        .name("journalpost_behandlende_enhet")
+        .help("Number of Journalposts processed by journalƒøring-ruting")
+        .labelNames(*labelNames.toTypedArray())
+        .register()
 
     companion object {
         @JvmStatic
