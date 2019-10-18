@@ -3,7 +3,7 @@ namespace: default
 
 # Labels to add to all resources and selectors.
 commonLabels:
-  app: dagpenger-joark-mottak
+  app: dagpenger-journalforing-ruting
   team: teamdagpenger
 
 commonAnnotations:
