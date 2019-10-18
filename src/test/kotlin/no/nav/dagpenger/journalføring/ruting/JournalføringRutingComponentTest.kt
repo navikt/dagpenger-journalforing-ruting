@@ -1,6 +1,5 @@
 package no.nav.dagpenger.journalføring.ruting
 
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import mu.KotlinLogging
 import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
@@ -22,7 +21,6 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-
 import java.time.Duration
 import java.util.Properties
 import java.util.Random
@@ -81,21 +79,20 @@ class JournalføringRutingComponentTest {
             Random().nextLong().toString() to true
         )
 
-        // given an environment
-        val env = Environment(
-            dagpengerOppslagUrl = "local",
-            username = username,
-            password = password,
-            bootstrapServersUrl = embeddedEnvironment.brokersURL,
-            schemaRegistryUrl = embeddedEnvironment.schemaRegistry!!.url,
-            httpPort = getAvailablePort()
+        // given config
+        val configuration = Configuration().copy(
+            kafka = Configuration.Kafka(brokers = embeddedEnvironment.brokersURL),
+            application = Configuration.Application(
+                httpPort = getAvailablePort(),
+                user = username, password = password
+            )
         )
 
         val ruting = JournalføringRuting(Configuration(), DummyOppslagClient())
 
         // produce behov...
 
-        val behovProducer = behovProducer(env)
+        val behovProducer = behovProducer(configuration)
 
         ruting.start()
 
@@ -117,7 +114,7 @@ class JournalføringRutingComponentTest {
             LOGGER.info { "Produced -> ${record.topic()}  to offset ${record.offset()}" }
         }
 
-        val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env)
+        val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(configuration)
         val behovsListe = behovConsumer.poll(Duration.ofSeconds(5)).toList()
 
         ruting.stop()
@@ -140,10 +137,9 @@ class JournalføringRutingComponentTest {
         }
     }
 
-    private fun behovProducer(env: Environment): KafkaProducer<String, Behov> {
+    private fun behovProducer(configuration: Configuration): KafkaProducer<String, Behov> {
         val producer: KafkaProducer<String, Behov> = KafkaProducer(Properties().apply {
-            put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, env.schemaRegistryUrl)
-            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, env.bootstrapServersUrl)
+            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.kafka.brokers)
             put(ProducerConfig.CLIENT_ID_CONFIG, "dummy-behov-producer")
             put(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
@@ -157,18 +153,17 @@ class JournalføringRutingComponentTest {
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
             put(
                 SaslConfigs.SASL_JAAS_CONFIG,
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${env.username}\" password=\"${env.password}\";"
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${configuration.application.user}\" password=\"${configuration.application.password}\";"
             )
         })
 
         return producer
     }
 
-    private fun behovConsumer(env: Environment): KafkaConsumer<String, Behov> {
+    private fun behovConsumer(configuration: Configuration): KafkaConsumer<String, Behov> {
         val consumer: KafkaConsumer<String, Behov> = KafkaConsumer(Properties().apply {
-            put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, env.schemaRegistryUrl)
             put(ConsumerConfig.GROUP_ID_CONFIG, "test-dagpenger-ruting-consumer")
-            put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, env.bootstrapServersUrl)
+            put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.kafka.brokers)
             put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
             put(
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -182,7 +177,7 @@ class JournalføringRutingComponentTest {
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
             put(
                 SaslConfigs.SASL_JAAS_CONFIG,
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${env.username}\" password=\"${env.password}\";"
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${configuration.application.user}\" password=\"${configuration.application.password}\";"
             )
         })
 
