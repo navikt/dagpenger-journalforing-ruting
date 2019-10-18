@@ -16,7 +16,9 @@ import java.util.Properties
 private val LOGGER = KotlinLogging.logger {}
 
 internal object PacketKeys {
+    const val BEHANDLENDE_ENHET: String = "behandlendeEnhet"
     const val HOVEDSKJEMA_ID: String = "hovedskjemaId"
+    const val AKTØR_ID: String = "aktørId"
 }
 
 class JournalføringRuting(val configuration: Configuration, private val oppslagClient: OppslagClient) :
@@ -43,13 +45,13 @@ class JournalføringRuting(val configuration: Configuration, private val oppslag
 
     override fun filterPredicates(): List<Predicate<String, Packet>> {
         return listOf(
-            Predicate { _, packet -> !packet.hasField(PacketKeys.HOVEDSKJEMA_ID) }
+            Predicate { _, packet -> packet.hasField(PacketKeys.AKTØR_ID) },
+            Predicate { _, packet -> !packet.hasField(PacketKeys.BEHANDLENDE_ENHET) }
         )
     }
 
     override fun onPacket(packet: Packet): Packet {
-        return packet
-        // TODO("not implemented")
+        return addBehandleneEnhet(packet)
     }
 
     // override fun buildTopology(): Topology {
@@ -75,11 +77,11 @@ class JournalføringRuting(val configuration: Configuration, private val oppslag
         return props
     }
 
-    private fun addBehandleneEnhet(behov: Behov): Behov {
-        val fødselsnummer = behov.getMottaker().getIdentifikator()
+    private fun addBehandleneEnhet(packet: Packet): Packet {
+        val aktørId = packet.getStringValue(PacketKeys.AKTØR_ID)
 
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(
-            GeografiskTilknytningRequest(fødselsnummer)
+            GeografiskTilknytningRequest(aktørId)
         )
 
         val (behandlendeEnheter) = oppslagClient.hentBehandlendeEnhet(
@@ -89,8 +91,8 @@ class JournalføringRuting(val configuration: Configuration, private val oppslag
         val behandlendeEnhet = behandlendeEnheter.minBy { it.enhetId } ?: throw RutingException("Missing enhetId")
 
         jpCounter.labels(behandlendeEnhet.enhetId, diskresjonsKode).inc()
-        behov.setBehandleneEnhet(behandlendeEnhet.enhetId)
-        return behov
+        packet.putValue(PacketKeys.BEHANDLENDE_ENHET, behandlendeEnhet.enhetId)
+        return packet
     }
 }
 
