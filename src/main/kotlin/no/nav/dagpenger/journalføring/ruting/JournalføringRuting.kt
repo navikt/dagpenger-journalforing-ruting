@@ -15,7 +15,12 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringRuting(val configuration: Configuration, private val oppslagClient: OppslagClient) : River() {
+internal object PacketKeys {
+    const val HOVEDSKJEMA_ID: String = "hovedskjemaId"
+}
+
+class JournalføringRuting(val configuration: Configuration, private val oppslagClient: OppslagClient) :
+    River(configuration.kafka.dagpengerJournalpostTopic) {
 
     override val SERVICE_APP_ID =
         "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
@@ -37,7 +42,9 @@ class JournalføringRuting(val configuration: Configuration, private val oppslag
         .register()
 
     override fun filterPredicates(): List<Predicate<String, Packet>> {
-        return emptyList()
+        return listOf(
+            Predicate { _, packet -> !packet.hasField(PacketKeys.HOVEDSKJEMA_ID) }
+        )
     }
 
     override fun onPacket(packet: Packet): Packet {
