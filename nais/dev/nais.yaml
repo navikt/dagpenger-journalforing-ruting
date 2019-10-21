@@ -2,4 +2,11 @@ apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
   name: dagpenger-journalforing-ruting
+spec:
+  vault:
+    paths:
+      - kvPath: "serviceuser/data/dev/srvdagpenger-journ"
+        mountPath: "/secrets/serviceuser/srvdagpenger-journ"
+
+
 
