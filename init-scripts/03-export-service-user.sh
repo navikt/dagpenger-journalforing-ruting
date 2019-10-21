@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-if test -f /secret/serviceuser/srvdagpenger-journ/username;
+if test -f /secrets/serviceuser/srvdagpenger-journ/username;
 then
-    export  SRVDAGPENGER_JOURNALFORING_RUTING_USERNAME=$(cat /secret/serviceuser/srvdagpenger-journ/username)
+    export  SRVDAGPENGER_JOURNALFORING_RUTING_USERNAME=$(cat /secrets/serviceuser/srvdagpenger-journ/username)
 fi
-
-if test -f /secret/serviceuserver/srvdagpenger-journ/password;
+if test -f /secrets/serviceuserver/srvdagpenger-journ/password;
 then
-    export  SRVDAGPENGER_JOURNALFORING_RUTING_PASSWORD=$(cat /secret/serviceuser/srvdagpenger-journ/password)
+    export  SRVDAGPENGER_JOURNALFORING_RUTING_PASSWORD=$(cat /secrets/serviceuser/srvdagpenger-journ/password)
 fi
 
 
