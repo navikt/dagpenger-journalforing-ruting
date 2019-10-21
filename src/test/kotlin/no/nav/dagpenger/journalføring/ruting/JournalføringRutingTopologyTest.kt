@@ -4,6 +4,7 @@ import io.kotlintest.shouldBe
 import io.kotlintest.shouldNotBe
 import io.mockk.every
 import io.mockk.mockk
+import io.prometheus.client.CollectorRegistry
 import no.nav.dagpenger.events.Packet
 import no.nav.dagpenger.streams.PacketDeserializer
 import no.nav.dagpenger.streams.PacketSerializer
@@ -54,6 +55,8 @@ internal class JournalføringRutingTopologyTest {
 
     @Test
     fun `skal legge til behandlende enhet hvis pakken har informasjon om bruker`() {
+        CollectorRegistry.defaultRegistry.clear()
+
         val oppslagsklient = mockk<OppslagHttpClient>().also {
             every { it.hentGeografiskTilknytning(any()) } returns GeografiskTilknytningResponse(
                 geografiskTilknytning = "blabla",
