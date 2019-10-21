@@ -1,5 +1,6 @@
 package no.nav.dagpenger.journalføring.ruting
 
+import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
 import com.natpryce.konfig.ConfigurationProperties
 import com.natpryce.konfig.EnvironmentVariables
@@ -12,6 +13,7 @@ import no.nav.dagpenger.streams.PacketDeserializer
 import no.nav.dagpenger.streams.PacketSerializer
 import no.nav.dagpenger.streams.Topic
 import org.apache.kafka.common.serialization.Serdes
+import java.io.File
 
 private val localProperties = ConfigurationMap(
     mapOf(
@@ -43,11 +45,16 @@ private val prodProperties = ConfigurationMap(
     )
 )
 
-private fun config() = when (System.getenv("NAIS_CLUSTER_NAME") ?: System.getProperty("NAIS_CLUSTER_NAME")) {
-    "dev-fss" -> ConfigurationProperties.systemProperties() overriding EnvironmentVariables overriding devProperties
-    "prod-fss" -> ConfigurationProperties.systemProperties() overriding EnvironmentVariables overriding prodProperties
-    else -> {
-        ConfigurationProperties.systemProperties() overriding EnvironmentVariables overriding localProperties
+private val defaultConfiguration =
+    ConfigurationProperties.fromOptionalFile(File("/var/run/secrets/nais.io/vault/config.properties")) overriding ConfigurationProperties.systemProperties() overriding EnvironmentVariables
+
+fun config(): Configuration {
+    return when (System.getenv("NAIS_CLUSTER_NAME") ?: System.getProperty("NAIS_CLUSTER_NAME")) {
+        "dev-fss" -> defaultConfiguration overriding devProperties
+        "prod-fss" -> defaultConfiguration overriding prodProperties
+        else -> {
+            defaultConfiguration overriding localProperties
+        }
     }
 }
 
