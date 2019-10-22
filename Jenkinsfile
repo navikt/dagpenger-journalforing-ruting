@@ -71,7 +71,7 @@ pipeline {
     stage('Acceptance testing') {
       stages {
         stage('Deploy to pre-production') {
-          when { branch 'task/master' }
+          when { branch 'master' }
           steps {
 
             sh label: 'Deploy with kubectl', script: """
