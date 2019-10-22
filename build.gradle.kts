@@ -28,7 +28,7 @@ repositories {
 
 application {
     applicationName = "dagpenger-journalforing-ruting"
-    mainClassName = "no.nav.dagpenger.journalføring.ruting.JournalføringRuting"
+    mainClassName = "no.nav.dagpenger.journalføring.ruting.JournalføringRutingKt"
 }
 
 java {
@@ -49,7 +49,7 @@ configurations {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation(Dagpenger.Streams)
+    implementation("com.github.navikt:dagpenger-streams:2019.10.18-12.06.fbbb66cd150b")
     implementation(Dagpenger.Events)
 
     implementation(Dagpenger.Biblioteker.stsKlient)

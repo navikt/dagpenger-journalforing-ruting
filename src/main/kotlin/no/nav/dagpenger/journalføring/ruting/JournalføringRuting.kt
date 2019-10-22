@@ -2,27 +2,32 @@ package no.nav.dagpenger.journalføring.ruting
 
 import io.prometheus.client.Counter
 import mu.KotlinLogging
+import no.nav.dagpenger.events.Packet
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.hasBehandlendeEnhet
 import no.nav.dagpenger.events.hasHenvendelsesType
 
 import no.nav.dagpenger.streams.KafkaCredential
-import no.nav.dagpenger.streams.Service
-import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
-import no.nav.dagpenger.streams.consumeTopic
+import no.nav.dagpenger.streams.River
 import no.nav.dagpenger.streams.streamConfig
-import no.nav.dagpenger.streams.toTopic
-import org.apache.kafka.streams.StreamsBuilder
-import org.apache.kafka.streams.Topology
+import org.apache.kafka.streams.kstream.Predicate
 import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringRuting(val env: Environment, private val oppslagClient: OppslagClient) : Service() {
+internal object PacketKeys {
+    const val BEHANDLENDE_ENHET: String = "behandlendeEnhet"
+    const val HOVEDSKJEMA_ID: String = "hovedskjemaId"
+    const val AKTØR_ID: String = "aktørId"
+}
+
+class JournalføringRuting(val configuration: Configuration, private val oppslagClient: OppslagClient) :
+    River(configuration.kafka.dagpengerJournalpostTopic) {
+
     override val SERVICE_APP_ID =
         "journalføring-ruting" // NB: also used as group.id for the consumer group - do not change!
 
-    override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
+    override val HTTP_PORT: Int = configuration.application.httpPort
     private val DAGPENGER_NAMESPACE = "dagpenger"
 
     private val labelNames = listOf(
@@ -38,43 +43,45 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         .labelNames(*labelNames.toTypedArray())
         .register()
 
-    companion object {
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val env = Environment()
-            val service = JournalføringRuting(env, OppslagHttpClient(env.dagpengerOppslagUrl))
-            service.start()
-        }
+    override fun filterPredicates(): List<Predicate<String, Packet>> {
+        return listOf(
+            Predicate { _, packet -> packet.hasField(PacketKeys.AKTØR_ID) },
+            Predicate { _, packet -> !packet.hasField(PacketKeys.BEHANDLENDE_ENHET) }
+        )
     }
 
-    override fun buildTopology(): Topology {
-        val builder = StreamsBuilder()
-
-        val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
-
-        inngåendeJournalposter
-            .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-            .filter { _, behov -> shouldBeProcessed(behov) }
-            .mapValues(this::addBehandleneEnhet)
-            .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-            .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
-        return builder.build()
+    override fun onPacket(packet: Packet): Packet {
+        return addBehandleneEnhet(packet)
     }
+
+    // override fun buildTopology(): Topology {
+    //     val builder = StreamsBuilder()
+    //
+    //     val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
+    //
+    //     inngåendeJournalposter
+    //         .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
+    //         .filter { _, behov -> shouldBeProcessed(behov) }
+    //         .mapValues(this::addBehandleneEnhet)
+    //         .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
+    //         .toTopic(INNGÅENDE_JOURNALPOST, co)
+    //     return builder.build()
+    // }
 
     override fun getConfig(): Properties {
         val props = streamConfig(
             appId = SERVICE_APP_ID,
-            bootStapServerUrl = env.bootstrapServersUrl,
-            credential = KafkaCredential(env.username, env.password)
+            bootStapServerUrl = configuration.kafka.brokers,
+            credential = KafkaCredential(configuration.application.user, configuration.application.password)
         )
         return props
     }
 
-    private fun addBehandleneEnhet(behov: Behov): Behov {
-        val fødselsnummer = behov.getMottaker().getIdentifikator()
+    private fun addBehandleneEnhet(packet: Packet): Packet {
+        val aktørId = packet.getStringValue(PacketKeys.AKTØR_ID)
 
         val (geografiskTilknytning, diskresjonsKode) = oppslagClient.hentGeografiskTilknytning(
-            GeografiskTilknytningRequest(fødselsnummer)
+            GeografiskTilknytningRequest(aktørId)
         )
 
         val (behandlendeEnheter) = oppslagClient.hentBehandlendeEnhet(
@@ -84,9 +91,15 @@ class JournalføringRuting(val env: Environment, private val oppslagClient: Opps
         val behandlendeEnhet = behandlendeEnheter.minBy { it.enhetId } ?: throw RutingException("Missing enhetId")
 
         jpCounter.labels(behandlendeEnhet.enhetId, diskresjonsKode).inc()
-        behov.setBehandleneEnhet(behandlendeEnhet.enhetId)
-        return behov
+        packet.putValue(PacketKeys.BEHANDLENDE_ENHET, behandlendeEnhet.enhetId)
+        return packet
     }
+}
+
+fun main(args: Array<String>) {
+    val configuration = Configuration()
+    val service = JournalføringRuting(configuration, OppslagHttpClient(configuration.application.oppslagUrl))
+    service.start()
 }
 
 fun shouldBeProcessed(behov: Behov): Boolean =
